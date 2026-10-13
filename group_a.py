@@ -10,10 +10,11 @@ from typesafe_sdk import RetryPolicy, TypeSafeClient
 from database_catalog import DatabaseCatalog
 from database_routing import JevDatabaseQuestionRouter
 from models import (
-    AgentAttempt, AgentRequest, AgentResponse, GroupAExecutionResult, GroupARoutingResult,
+    AgentAttempt, AgentRequest, AgentResponse, GroupAExecutionResult, GroupAInput, GroupARoutingResult,
     PipelineConfig, PreparedQuestion,
 )
 from pipeline import QuestionPipeline
+from question_context import parse_group_a_input, resolve_context
 from telemetry import CallRecorder
 
 AgentHandler = Callable[[AgentRequest], AgentResponse | dict]
@@ -29,36 +30,54 @@ class GroupARouter:
         self.openai = openai_client
         self.jev = jev_client
 
-    def route(self, question: str, recorder: CallRecorder | None = None) -> GroupARoutingResult:
-        if not isinstance(question, str) or not question.strip():
-            raise ValueError("USER 原始問題不得為空")
+    def route(self, question: str | GroupAInput | dict, recorder: CallRecorder | None = None) -> GroupARoutingResult:
+        request = parse_group_a_input(question)
+        question = request.original_question
         recorder = recorder if recorder is not None else CallRecorder()
         pipeline = QuestionPipeline(self.config, self.openai, self.jev, recorder)
+        context = resolve_context(request, pipeline)
+        if context.status == "error":
+            return GroupARoutingResult(
+                status="error", original_question=question, context_resolution=context,
+                preprocessing=PreparedQuestion(original_question=question, contextual_question=question,
+                                               question_used=question, outcome="original",
+                                               reason="context_resolution_failed"),
+                error_type=context.error_type, error_stage="context_resolution",
+            )
+        raw_prepared = pipeline.prepare_question(context.contextual_question, verify_rewrite=True)
+        if raw_prepared["outcome"] == "original" and context.contextual_question != question:
+            raw_prepared["outcome"] = "contextual"
         prepared = PreparedQuestion.model_validate({
-            **pipeline.prepare_question(question, verify_rewrite=True), "original_question": question,
+            **raw_prepared, "original_question": question, "contextual_question": context.contextual_question,
         })
         try:
             judgment = JevDatabaseQuestionRouter(self.config.step3, self.jev, recorder).judge(
                 prepared.question_used, self.catalog, original_question=question,
+                **({"contextual_question": context.contextual_question,
+                    "applied_context": {name: value for name, value in
+                                        (("year", context.applied_year), ("company", context.applied_company))
+                                        if value is not None}}
+                   if context.status == "completed" else {}),
             )
         except Exception as error:
-            # 前處理錯誤可使用原題；最終服務錯誤必須停止 agent 調用。
+            # 改寫錯誤仍保留已套用上下文；最終服務錯誤必須停止 agent 調用。
             return GroupARoutingResult(
                 status="error", original_question=question, preprocessing=prepared,
+                context_resolution=context,
                 error_type=type(error).__name__, error_stage="routing_judgment",
             )
         return GroupARoutingResult(
             status="completed", original_question=question, preprocessing=prepared,
+            context_resolution=context,
             needs_full_report=judgment.needs_full_report,
             route="full_report" if judgment.needs_full_report else "database", judgment=judgment,
         )
 
 
-def route_group_a(question: str, catalog: DatabaseCatalog, config: PipelineConfig,
+def route_group_a(question: str | GroupAInput | dict, catalog: DatabaseCatalog, config: PipelineConfig,
                   recorder: CallRecorder | None = None) -> GroupARoutingResult:
     """單題便利入口；長期運行的服務可直接重用 GroupARouter。"""
-    if not isinstance(question, str) or not question.strip():
-        raise ValueError("USER 原始問題不得為空")
+    question = parse_group_a_input(question)
     openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
     typesafe_key = os.environ.get("TYPESAFE_API_KEY", "").strip()
     if not openai_key or not typesafe_key:
@@ -82,7 +101,12 @@ class AgentDispatcher:
 
     def dispatch(self, routing: GroupARoutingResult) -> GroupAExecutionResult:
         if routing.status == "error":
-            return GroupAExecutionResult(routing=routing, status="routing_error", reason="分流服務失敗，未調用 agent。")
+            reason = ("缺少回答必要的前端年度或公司參數，未調用 agent。"
+                      if routing.error_type == "MissingContextParameters" else
+                      "年度／公司條件處理未完成，未調用 agent。"
+                      if routing.error_stage == "context_resolution" else
+                      "分流服務失敗，未調用 agent。")
+            return GroupAExecutionResult(routing=routing, status="routing_error", reason=reason)
         route = routing.route
         attempts = []
         for _ in range(2):
@@ -93,14 +117,22 @@ class AgentDispatcher:
                     reason=f"尚未接入 {route} agent。",
                 )
             task = (
-                "以原題為準，改寫題輔助理解。自行查核公司、期間、科目及明細資料；"
+                "以 contextual_question 為查詢基準，question_used 輔助理解。原題明示條件優先；"
+                "只用 applied_year／applied_company 補原題缺漏，不採用其他未套入的前端值。"
+                "自行查核公司、期間、科目及明細資料；"
                 "資料足夠才回答，缺少必要資料時回報 needs_full_report；無法取得的數值不可當成零。"
                 if route == "database" else
-                "以原題為準，改寫題輔助理解。查閱完整財報及附註回答；仍缺資料時回報 insufficient_data。"
+                "以 contextual_question 為查詢基準，question_used 輔助理解。原題明示條件優先；"
+                "只用 applied_year／applied_company 補原題缺漏，不採用其他未套入的前端值。"
+                "查閱完整財報及附註回答；仍缺資料時回報 insufficient_data。"
             )
+            context = routing.context_resolution
             request = AgentRequest(
                 route=route, original_question=routing.original_question,
                 question_used=routing.preprocessing.question_used, routing=routing, task=task,
+                contextual_question=routing.preprocessing.contextual_question or routing.original_question,
+                applied_year=context.applied_year if context is not None else None,
+                applied_company=context.applied_company if context is not None else None,
                 previous_attempts=list(attempts),
             )
             try:
@@ -131,5 +163,5 @@ class GroupASystem:
         self.router = router
         self.dispatcher = dispatcher
 
-    def run(self, question: str, recorder: CallRecorder | None = None) -> GroupAExecutionResult:
+    def run(self, question: str | GroupAInput | dict, recorder: CallRecorder | None = None) -> GroupAExecutionResult:
         return self.dispatcher.dispatch(self.router.route(question, recorder))

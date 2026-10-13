@@ -8,24 +8,62 @@ GitHub 公開版本庫：[112ab0706/financial-question-router](https://github.co
 
 `main_a.py` 是單題分流入口；`group_a.py` 提供可接入系統的 `GroupARouter`、`AgentDispatcher` 與 `GroupASystem`。這條流程只執行 A，不會連帶執行 B、C。
 
-1. 提取原文片段，查核 template 沒有捏造或替換原文。
-2. 判斷是否改寫；需要時產生候選改寫。
-3. 本機先檢查明確年份、數字及幣別，再獨立複核公司、期間、單位、所有條件、操作、概念及新增假設。只有七項均為 true 才採用改寫。任何驗證失敗、拒答或服務錯誤都保留原題。
-4. Jev 同一次呼叫完成三項分流檢查。原題是判斷依據，驗證後的改寫是用語輔助；兩題都保留。
-5. 選中資料庫 agent 或完整財報 agent。資料庫 agent 自行查核實際資料；若回報不足，交給完整財報 agent 一次。完整財報也不足則明確回報，不循環調用。
+1. 前端有傳入年度／公司參數時，先判斷回答是否需要、且原題是否缺漏。只有 `missing` 才由程式補入前端值；不依系統日期推算年度。
+2. 以補入後的問題提取原文片段，查核 template 沒有捏造或替換內容。原題沒有需要補入的條件時沿用原題。
+3. 判斷是否改寫；需要時產生候選改寫。
+4. 本機先檢查明確年份、數字及幣別，再獨立複核公司、期間、單位、所有條件、操作、概念及新增假設。只有七項均為 true 才採用改寫。驗證基準為補入後的問題；改寫失敗仍保留已套用的參數。
+5. Jev 同一次呼叫完成三項分流檢查。原題明示條件優先，補入題是查詢基準，驗證後的改寫輔助理解；三份文字都保留。
+6. 選中資料庫 agent 或完整財報 agent。資料庫 agent 自行查核實際資料；若回報不足，交給完整財報 agent 一次。完整財報也不足則明確回報，不循環調用。
 
 ```powershell
 .\.venv\Scripts\python.exe main_a.py "甲公司2025年的營收是多少？"
 .\.venv\Scripts\python.exe main_a.py "甲公司2025年的營收是多少？" --log test_results/group_a_single.json
+.\.venv\Scripts\python.exe main_a.py "營收是多少？" --latest-year 2025 --current-company "台積電"
+.\.venv\Scripts\python.exe main_a.py --input-json examples/group_a_frontend_request.json
 ```
 
 成功 stdout 是完整 JSON，包含 `status`、`route`、`needs_full_report`、原題、前處理與驗證結果、三項機率／旗標、門檻及科目雜湊。`route=database` 表示交給資料庫 agent 查核及回答，並非已確認 SQLite 資料存在。`data_availability=delegated_to_database_agent` 明示查核責任。最終模型失敗輸出 `status=error`、`route=null`、`needs_full_report=null`，結束碼 1；設定／清單／金鑰錯誤只在 stderr 顯示安全錯誤類型。CLI 只產生分流交接資料，實際 agent 函式由 Python 系統入口接入。
 
-`group_a_config.json` 沿用 A 的模型設定，另有 `rewrite_check` 指定複核模型。不需要改寫時只呼叫提取、status、Jev 共 3 次；一般改寫共 5 次（含獨立複核），本機提早拒絕時共 4 次。SDK 自動重試固定停用；複核成本及使用量包含在 `--log`。新版本為 `group_a_guarded_v1`／`jev_three_checks_original_context_v3`，舊實驗成績及費用不能直接當作這條流程的新成績。
+`group_a_config.json` 沿用 A 的模型設定，另有 `rewrite_check` 指定複核模型、`context_check` 指定參數必要性判斷模型。不帶前端參數時，不需要改寫共 3 次呼叫，一般改寫共 5 次，本機提早拒絕改寫共 4 次。帶任一前端參數時增加一次 `ContextRequirements` 判斷；其成本及使用量也包含在 `--log`。SDK 自動重試固定停用。新流程版本為 `group_a_context_v2`；帶前端參數的 Jev 判斷為 `jev_three_checks_frontend_context_v4`，不帶參數沿用 `jev_three_checks_original_context_v3`。歷史實驗結果維持原版本，不能直接當作新流程的成績。
+
+### 前端輸入與參數補入
+
+前端可傳入以下 JSON，Python 入口 `route_group_a`、`GroupARouter.route`、`GroupASystem.run` 及整合範例的 `run_question` 均可接收此 dict 或 `GroupAInput`：
+
+```json
+{
+  "original_question": "營收是多少？",
+  "latest_year": 2025,
+  "current_company": "台積電"
+}
+```
+
+`latest_year` 是前端提供的最新資料年度，使用西元整數（不傳 `"2025"` 字串）；`current_company` 是非空的公司名稱或代號。缺少選項時可傳 `null`，但若判斷為必要而缺漏卻沒有參數值，流程回報 `MissingContextParameters`，不調用 agent。只傳原題字串仍可執行既有流程，會略過參數補入。
+
+| 原題 | 前端年度 2025、公司台積電時的行為 |
+| --- | --- |
+| 營收是多少？ | 補年度與公司 |
+| 鴻海2024年的營收？ | 保留原公司與年度，兩者都不補 |
+| 台積電營收是多少？ | 僅補年度 |
+| 2024年營收是多少？ | 僅補公司 |
+| 第二季營收？ | 補年度與公司，保留第二季 |
+| 去年／最近三年營收？ | 保留相對期間，可補公司，不換成單一年度 |
+| 哪一年營收最高？ | 保留年度搜尋，可補公司 |
+| 哪家公司營收最高？ | 保留公司搜尋，可補年度 |
+| EPS是什麼？ | 不補年度與公司 |
+
+必要性由模型按完整語意判斷，不能只看 `Time`／`Filter` 是否空值。程式只附加獲准的前端參數，模型不能自行產生參數值。例如兩者都補入時，`contextual_question` 為：
+
+```text
+營收是多少？
+（系統補入查詢條件：年度：2025年；公司：台積電）
+```
+
+輸出分別保存 `original_question`（原題原字串）、`context_resolution`（前端值、必要性判斷、實際套用值）、`preprocessing.contextual_question`（補入基準）及 `preprocessing.question_used`（改寫成功或回退後的交接題）。未改寫但有補入時 `outcome=contextual`。參數判斷服務失敗、拒答或證據不是原文時，`status=error`、`error_stage=context_resolution`，不猜測套用，也不調用 Jev／agent。
 
 ### 接入其他 agent
 
-可直接使用 [examples/group_a_integration.py](examples/group_a_integration.py) 的 `run_question(question, database_agent=..., full_report_agent=...)`；傳入兩個已存在的 Python 函式即可。每個函式接收 `AgentRequest`，可用 `request.original_question`、`request.question_used`、`request.task`、`request.routing` 及 `request.previous_attempts`，後者保留前一個 agent 的資料不足原因。
+可直接使用 [examples/group_a_integration.py](examples/group_a_integration.py) 的 `run_question(question, database_agent=..., full_report_agent=...)`；傳入兩個已存在的 Python 函式即可。每個函式接收 `AgentRequest`，以 `request.contextual_question` 為查詢基準，`request.question_used` 輔助理解；`request.original_question` 保留原字串。`request.applied_year`／`request.applied_company` 只包含實際補入的值，不能以未採用的前端值蓋掉原題。另有 `request.task`、`request.routing` 及 `request.previous_attempts`，後者保留前一個 agent 的資料不足原因。
 
 agent 回傳 `AgentResponse` 或相同結構的 dict：
 
@@ -43,7 +81,7 @@ from examples.group_a_integration import run_question
 # 函式接收 request，成功可回傳 {"status": "completed", "answer": "答案文字"}；
 # 資料不足可回傳 {"status": "needs_full_report", "reason": "指定年度缺少客戶明細。"}。
 result = run_question(
-    "甲公司2025年兩大客戶的營收差額是多少？",
+    {"original_question": "兩大客戶的營收差額是多少？", "latest_year": 2025, "current_company": "台積電"},
     database_agent=database_agent,
     full_report_agent=full_report_agent,
 )

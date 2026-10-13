@@ -101,6 +101,7 @@ class PipelineConfig(StrictModel):
     step2: OpenAIStep
     step3: JevStep
     rewrite_check: OpenAIStep | None = None
+    context_check: OpenAIStep | None = None
     timeout_seconds: float = Field(default=60.0, gt=0.0, allow_inf_nan=False)
 
 
@@ -187,10 +188,94 @@ class RewriteValidationResult(StrictModel):
         return self
 
 
+class GroupAInput(StrictModel):
+    original_question: str = Field(min_length=1)
+    latest_year: int | None = Field(default=None, ge=1900, le=9999)
+    current_company: str | None = None
+
+    @model_validator(mode="after")
+    def valid_input(self) -> Self:
+        if not self.original_question.strip():
+            raise ValueError("USER 原始問題不得空白")
+        if self.current_company is not None and not self.current_company.strip():
+            raise ValueError("當前公司不得空白；沒有值時請傳 null")
+        return self
+
+
+class ContextRequirements(StrictModel):
+    # specified 包含相對期間、尋找年度、跨公司範圍，不限於明確年份／公司名。
+    year_scope: Literal["specified", "missing", "not_required"]
+    company_scope: Literal["specified", "missing", "not_required"]
+    year_evidence: str | None
+    company_evidence: str | None
+    reason: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def valid_evidence(self) -> Self:
+        if not self.reason.strip():
+            raise ValueError("上下文判斷必須說明理由")
+        for name in ("year", "company"):
+            scope, evidence = getattr(self, name + "_scope"), getattr(self, name + "_evidence")
+            if scope == "specified":
+                if evidence is None or not evidence.strip():
+                    raise ValueError("已指定範圍必須提供原文片段")
+            elif evidence is not None:
+                raise ValueError("缺漏或不需要的範圍不得捏造原文片段")
+        return self
+
+
+def contextualize_question(original: str, year: int | None, company: str | None) -> str:
+    conditions = []
+    if year is not None:
+        conditions.append(f"年度：{year}年")
+    if company is not None:
+        conditions.append(f"公司：{company}")
+    if not conditions:
+        return original
+    return original + "\n（系統補入查詢條件：" + "；".join(conditions) + "）"
+
+
+class ContextResolution(StrictModel):
+    status: Literal["skipped", "completed", "error"]
+    original_question: str
+    contextual_question: str
+    latest_year: int | None = None
+    current_company: str | None = None
+    applied_year: int | None = None
+    applied_company: str | None = None
+    requirements: ContextRequirements | None = None
+    error_type: str | None = None
+
+    @model_validator(mode="after")
+    def authorized_defaults(self) -> Self:
+        GroupAInput(original_question=self.original_question, latest_year=self.latest_year,
+                    current_company=self.current_company)
+        if self.status == "skipped" and (self.requirements is not None or self.error_type is not None
+                                         or self.latest_year is not None or self.current_company is not None):
+            raise ValueError("只有未提供前端參數時才略過判斷")
+        if self.status == "error" and (self.error_type is None or not self.error_type.strip()):
+            raise ValueError("上下文處理失敗必須保存錯誤類型")
+        if self.status != "completed" and (self.applied_year is not None or self.applied_company is not None):
+            raise ValueError("未完成上下文判斷時不得套入參數")
+        if self.status == "completed" and (self.requirements is None or self.error_type is not None):
+            raise ValueError("完成上下文判斷必須保留有效判斷")
+        for name, supplied in (("year", self.latest_year), ("company", self.current_company)):
+            applied = getattr(self, "applied_" + name)
+            if applied is not None and (applied != supplied or self.requirements is None
+                                        or getattr(self.requirements, name + "_scope") != "missing"):
+                raise ValueError("只能補入必要、缺漏且由前端提供的參數")
+            if self.status == "completed" and getattr(self.requirements, name + "_scope") == "missing" and applied is None:
+                raise ValueError("缺少必要的前端參數")
+        if self.contextual_question != contextualize_question(self.original_question, self.applied_year, self.applied_company):
+            raise ValueError("補入問題只能附加已核准參數，不得變更原題")
+        return self
+
+
 class PreparedQuestion(StrictModel):
     original_question: str
+    contextual_question: str | None = None
     question_used: str
-    outcome: Literal["original", "rewritten"]
+    outcome: Literal["original", "contextual", "rewritten"]
     reason: str | None = None
     template: QuestionTemplate | None = None
     classification: StatusResult | None = None
@@ -205,6 +290,15 @@ class PreparedQuestion(StrictModel):
             raise ValueError("原題與交接題目不得為空")
         if self.outcome == "original" and self.question_used != self.original_question:
             raise ValueError("保留原題時不能替換文字")
+        if self.contextual_question is not None:
+            if not self.contextual_question.strip():
+                raise ValueError("上下文問題不得空白")
+            if self.outcome == "original" and self.contextual_question != self.original_question:
+                raise ValueError("已補入上下文後不得回退裸原題")
+        if self.outcome == "contextual" and (self.contextual_question is None
+                                            or self.question_used != self.contextual_question
+                                            or self.contextual_question == self.original_question):
+            raise ValueError("使用補入題時必須對應上下文基準")
         if self.outcome == "rewritten":
             if self.rewrite is None or self.question_used != self.rewrite.rewritten_question:
                 raise ValueError("使用題目必須對應保存的改寫")
@@ -243,11 +337,12 @@ class JevRoutingResult(StrictModel):
 
 
 class GroupARoutingResult(StrictModel):
-    pipeline_version: Literal["group_a_guarded_v1"] = "group_a_guarded_v1"
+    pipeline_version: Literal["group_a_context_v2"] = "group_a_context_v2"
     bool_semantics: Literal["needs_full_report"] = "needs_full_report"
     status: Literal["completed", "error"]
     original_question: str
     preprocessing: PreparedQuestion
+    context_resolution: ContextResolution | None = None
     route: AgentRoute | None = None
     needs_full_report: bool | None = None
     judgment: JevRoutingResult | None = None
@@ -260,6 +355,14 @@ class GroupARoutingResult(StrictModel):
     def valid_route(self) -> Self:
         if self.preprocessing.original_question != self.original_question:
             raise ValueError("前處理原題不一致")
+        if self.context_resolution is not None:
+            if (self.context_resolution.original_question != self.original_question
+                    or self.preprocessing.contextual_question != self.context_resolution.contextual_question):
+                raise ValueError("前處理上下文不一致")
+            if self.status == "completed" and self.context_resolution.status == "error":
+                raise ValueError("上下文處理失敗不得調用 agent")
+        elif self.preprocessing.contextual_question not in (None, self.original_question):
+            raise ValueError("補入上下文必須有套用紀錄")
         if self.status == "completed":
             if self.judgment is None or self.needs_full_report is None:
                 raise ValueError("完成分流必須有判斷結果")
@@ -297,9 +400,27 @@ class AgentRequest(StrictModel):
     route: AgentRoute
     original_question: str
     question_used: str
+    contextual_question: str | None = None
+    applied_year: int | None = None
+    applied_company: str | None = None
     routing: GroupARoutingResult
     task: str
     previous_attempts: list[AgentAttempt] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def consistent_context(self) -> Self:
+        if (self.original_question != self.routing.original_question
+                or self.question_used != self.routing.preprocessing.question_used):
+            raise ValueError("agent 題目必須對應分流結果")
+        baseline = self.routing.preprocessing.contextual_question or self.original_question
+        if self.contextual_question != baseline:
+            if self.contextual_question is not None or baseline != self.original_question:
+                raise ValueError("agent 的上下文基準不一致")
+        context = self.routing.context_resolution
+        if (self.applied_year != (context.applied_year if context is not None else None)
+                or self.applied_company != (context.applied_company if context is not None else None)):
+            raise ValueError("agent 只能接收分流已套用的參數")
+        return self
 
 
 class GroupAExecutionResult(StrictModel):

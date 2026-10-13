@@ -28,7 +28,8 @@ class JevDatabaseQuestionRouter:
         self.recorder = recorder if recorder is not None else CallRecorder()
 
     @staticmethod
-    def build_state(question: str, catalog: DatabaseCatalog, *, original_question: str | None = None) -> dict:
+    def build_state(question: str, catalog: DatabaseCatalog, *, original_question: str | None = None,
+                    contextual_question: str | None = None, applied_context: dict | None = None) -> dict:
         # 完整科目涵義仍保留；來源年月、尚未查核資料列等稽核資訊留在 manifest，
         # 避免在能力判斷中被誤當成科目缺漏。查核實際資料是另一個程式步驟。
         view = catalog.to_jev_state()
@@ -44,18 +45,33 @@ class JevDatabaseQuestionRouter:
                 "original_question is authoritative. question_used is a verified wording aid; "
                 "keep every condition and information requirement from the original."
             ))
+        if contextual_question is not None:
+            state.update(contextual_question=contextual_question, question_used=question,
+                         applied_context=applied_context or {}, question_policy=(
+                "Judge contextual_question, which preserves the raw original_question and appends only "
+                "authorized missing lookup conditions from the frontend. Explicit original conditions "
+                "and search ranges take priority. applied_context contains only applied defaults; "
+                "question_used is a verified wording aid. Never invent other defaults."
+            ))
         return state
 
     def judge(self, question: str, catalog: DatabaseCatalog, *,
-              original_question: str | None = None) -> JevRoutingResult:
+              original_question: str | None = None, contextual_question: str | None = None,
+              applied_context: dict | None = None) -> JevRoutingResult:
         if not isinstance(question, str) or not question.strip():
             raise ValueError("判斷問題不得為空")
         if original_question is not None and (not isinstance(original_question, str) or not original_question.strip()):
             raise ValueError("USER 原始問題不得為空")
-        state = self.build_state(question, catalog, original_question=original_question)
-        version = (prompts.JEV_GROUP_A_ROUTING_VERSION if original_question is not None
+        state = self.build_state(question, catalog, original_question=original_question,
+                                 contextual_question=contextual_question, applied_context=applied_context)
+        version = (prompts.JEV_CONTEXT_ROUTING_VERSION if contextual_question is not None else
+                   prompts.JEV_GROUP_A_ROUTING_VERSION if original_question is not None
                    else prompts.JEV_ROUTING_VERSION)
         checks = prompts.JEV_ROUTING_CHECKS
+        if contextual_question is not None:
+            checks = {name: {**check, "instructions": check["instructions"].replace(
+                "`original_question`", "`contextual_question`") + " Follow question_policy and authorized applied_context."}
+                      for name, check in checks.items()}
         questions = {name: Noul(
             instructions=check["instructions"],
             criteria=NoulCriteria(true=check["true"], false=check["false"]),

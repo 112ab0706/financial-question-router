@@ -84,7 +84,7 @@ git pull --ff-only origin main
 需要離線交換修改時，可由各組員產生新的 bundle 交換提交。更新 bundle 時只輸出已提交內容：
 
 ```powershell
-git bundle create "自己的分享檔案.bundle" --all
+git bundle create "自己的分享檔案.bundle" main
 ```
 
 ## 重新產生分享檔案
@@ -94,7 +94,7 @@ git bundle create "自己的分享檔案.bundle" --all
 ```powershell
 New-Item -ItemType Directory -Force output/share | Out-Null
 git archive --format=zip --output=output/share/financial-question-router.zip HEAD
-git bundle create output/share/financial-question-router.bundle --all
+git bundle create output/share/financial-question-router.bundle main
 git bundle verify output/share/financial-question-router.bundle
 ```
 

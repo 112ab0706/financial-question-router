@@ -2,7 +2,7 @@
 
 Python 3.11+。專題正式入口採 A 組：保護問題改寫原意、Jev 分流、調用外部資料庫／完整財報 agent。SQLite 查核與財務回答由其他 agent 負責。本專案提供交接介面及錯誤狀態。
 
-組員取得專案、設定自己的 API key 與 Git 協作方式，請看 [SHARING.md](SHARING.md)。
+GitHub 公開版本庫：[112ab0706/financial-question-router](https://github.com/112ab0706/financial-question-router)。組員取得專案、設定自己的 API key 與 Git 協作方式，請看 [SHARING.md](SHARING.md)。
 
 ## 專題正式 A 組入口
 

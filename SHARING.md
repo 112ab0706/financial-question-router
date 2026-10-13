@@ -4,6 +4,17 @@
 
 ## 取得專案
 
+共同的 GitHub 公開版本庫：[112ab0706/financial-question-router](https://github.com/112ab0706/financial-question-router)。組員可直接下載，或在 PowerShell 中取得含版本歷史的專案：
+
+```powershell
+git clone https://github.com/112ab0706/financial-question-router.git
+cd financial-question-router
+```
+
+需要推送修改的組員，請由版本庫擁有者在 GitHub 的 Settings → Collaborators 加入協作者；也可以先 fork，再送出 Pull Request。
+
+### 離線分享
+
 `output/share/financial-question-router.zip` 是程式原始碼壓縮包，解壓即可閱讀及執行。它不包含 Git 歷史。
 
 `output/share/financial-question-router.bundle` 包含 Git 歷史，適合組員建立自己的版本庫。在 PowerShell 中執行，將路徑換成收到檔案的位置：
@@ -13,17 +24,10 @@ git clone "C:\收到檔案的位置\financial-question-router.bundle" financial-
 cd financial-question-router
 ```
 
-bundle 是建立當下的版本快照，不會自動同步。若之後使用 GitHub、GitLab 或其他 Git 主機，先建立共同的遠端版本庫，再由維護者推送：
+bundle 是建立當下的版本快照，不會自動同步。從 bundle clone 的組員，`origin` 起初是 bundle 檔案位置；請改成共同的 GitHub 網址：
 
 ```powershell
-git remote add origin "組內遠端版本庫的網址"
-git push -u origin main
-```
-
-從 bundle clone 的組員，`origin` 起初是 bundle 檔案位置；加入共同遠端後請改成實際網址：
-
-```powershell
-git remote set-url origin "組內遠端版本庫的網址"
+git remote set-url origin https://github.com/112ab0706/financial-question-router.git
 ```
 
 ## 安裝與設定
@@ -64,14 +68,20 @@ git add group_a.py
 git commit -m "Improve agent integration"
 ```
 
-上述檔案名稱及提交訊息是範例，請換成自己實際修改的內容。若已有共同遠端，推送工作分支後請組員審查再合併；開始工作前先更新 `main`。
+上述檔案名稱及提交訊息是範例，請換成自己實際修改的內容。有協作者權限時可推送自己的工作分支，再到 GitHub 建立 Pull Request，請組員審查並合併：
+
+```powershell
+git push -u origin feature/agent-integration
+```
+
+開始新的工作前先更新 `main`：
 
 ```powershell
 git switch main
 git pull --ff-only origin main
 ```
 
-如果尚未設共同遠端，可由各組員產生新的 bundle 交換提交。更新 bundle 時只輸出已提交內容：
+需要離線交換修改時，可由各組員產生新的 bundle 交換提交。更新 bundle 時只輸出已提交內容：
 
 ```powershell
 git bundle create "自己的分享檔案.bundle" --all

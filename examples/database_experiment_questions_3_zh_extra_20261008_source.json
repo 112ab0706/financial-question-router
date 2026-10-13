@@ -1,0 +1,37 @@
+{
+  "created_on": "2026-10-08",
+  "author": "assistant",
+  "gold_source": "assistant_designed_catalog_based",
+  "bool_semantics": "needs_full_report",
+  "standard_answer_scope": "以既有科目清單的涵義與資料粒度判斷；未查核實際公司、期間的資料列。",
+  "catalog_sha256": "0acc062930fce63f060b08a82f1737298449b22dade5e02c1dbdfd9c37de734e",
+  "questions": [
+    {
+      "id": 21,
+      "zh": "該公司2025年度的營業利益率（營業利益÷營業收入×100%）是多少？",
+      "gold_needs_full_report": false,
+      "test_dimension": "科目足夠且可透過算術計算",
+      "standard_answer_reason": "清單包含營業利益與營業收入，題目已明示公式，可由程式計算。依本實驗口徑，個別公司與年度的實際資料是否存在另行查核。",
+      "supporting_item_ids": ["i1190", "i1197"],
+      "missing_information": []
+    },
+    {
+      "id": 22,
+      "zh": "該公司2025年度營業收入最高的單一客戶名稱，以及該客戶的營業收入金額各是多少？",
+      "gold_needs_full_report": true,
+      "test_dimension": "需要客戶身分與客戶別明細",
+      "standard_answer_reason": "營業收入總額不能推導單一客戶的身分與營收。提供的清單沒有客戶名稱與客戶別營業收入明細，需要完整財報的相關揭露；完整財報若也未揭露，仍可能無法回答。",
+      "supporting_item_ids": ["i1197"],
+      "missing_information": ["營業收入最高客戶的名稱", "該客戶的營業收入金額"]
+    },
+    {
+      "id": 23,
+      "zh": "該公司2025年度財報中，不動產、廠房及設備採用哪些折舊方法，各類資產的耐用年限是多少？",
+      "gold_needs_full_report": true,
+      "test_dimension": "需要會計政策與估計的文字揭露",
+      "standard_answer_reason": "折舊費用及累計折舊等金額科目無法確定公司實際採用的折舊方法與各類資產耐用年限，須查閱完整財報中的會計政策或相關附註。",
+      "supporting_item_ids": [],
+      "missing_information": ["公司採用的折舊方法", "各類資產的耐用年限"]
+    }
+  ]
+}

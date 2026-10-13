@@ -1,0 +1,12 @@
+[
+  {
+    "question_id": "q001",
+    "question": "甲公司2025年的營業收入是多少？",
+    "gold_answerable": null
+  },
+  {
+    "question_id": "q002",
+    "question": "截至2014年9月27日,公司兩大客戶合計佔應收貿易帳款總額的百分比是多少?",
+    "gold_answerable": null
+  }
+]

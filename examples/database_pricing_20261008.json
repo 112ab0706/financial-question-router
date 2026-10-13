@@ -1,0 +1,40 @@
+{
+  "as_of": "2026-10-08",
+  "currency": "USD",
+  "tier": "Standard, short context, no tools or regional surcharge",
+  "sources": [
+    "https://developers.openai.com/api/docs/models/gpt-4.1-mini",
+    "https://developers.openai.com/api/docs/models/gpt-6-luna",
+    "https://developers.openai.com/api/docs/models/gpt-5.4-mini",
+    "https://docs.typesafe.ai/models"
+  ],
+  "models": {
+    "openai:gpt-4.1-mini": {
+      "input": 0.4,
+      "cached_input": 0.1,
+      "cache_write": null,
+      "output": 1.6
+    },
+    "openai:gpt-6-luna": {
+      "input": 0.1,
+      "cached_input": 0.01,
+      "cache_write": 0.125,
+      "output": 0.5
+    },
+    "openai:gpt-5.4-mini": {
+      "input": 0.75,
+      "cached_input": 0.075,
+      "cache_write": null,
+      "output": 4.5
+    },
+    "typesafe:jev-1.13.0": {
+      "input": 0.042,
+      "output": 0.0
+    }
+  },
+  "aliases": {
+    "typesafe:jev-latest": "typesafe:jev-1.13.0",
+    "openai:gpt-4.1-mini-2025-04-14": "openai:gpt-4.1-mini",
+    "openai:gpt-5.4-mini-2026-03-17": "openai:gpt-5.4-mini"
+  }
+}

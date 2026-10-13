@@ -1,0 +1,6 @@
+{
+  "openai_judge": {
+    "model": "gpt-6-luna",
+    "reasoning_effort": "low"
+  }
+}

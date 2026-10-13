@@ -1,0 +1,8 @@
+{
+  "step1": {"model": "gpt-4.1-mini"},
+  "status_check": {"model": "gpt-6-luna", "reasoning_effort": "low"},
+  "step2": {"model": "gpt-5.4-mini", "reasoning_effort": "medium"},
+  "rewrite_check": {"model": "gpt-5.4-mini", "reasoning_effort": "medium"},
+  "step3": {"model": "jev-latest", "yes_threshold": 0.5},
+  "timeout_seconds": 60.0
+}

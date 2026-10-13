@@ -1,0 +1,17 @@
+[
+  {
+    "question_id": "q021",
+    "question": "該公司2025年度的營業利益率（營業利益÷營業收入×100%）是多少？",
+    "gold_needs_full_report": false
+  },
+  {
+    "question_id": "q022",
+    "question": "該公司2025年度營業收入最高的單一客戶名稱，以及該客戶的營業收入金額各是多少？",
+    "gold_needs_full_report": true
+  },
+  {
+    "question_id": "q023",
+    "question": "該公司2025年度財報中，不動產、廠房及設備採用哪些折舊方法，各類資產的耐用年限是多少？",
+    "gold_needs_full_report": true
+  }
+]

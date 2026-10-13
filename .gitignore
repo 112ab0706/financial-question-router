@@ -1,0 +1,33 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local Codex configuration and generated artifacts
+.agents/
+.codex/
+skills-lock.json
+.chart-data-*/
+.presentation-build/
+test_results/
+tmp/
+output/
+reports/
+*.log
+*.zip
+*.bundle
+
+# Databases and operating-system files
+*.sqlite
+*.sqlite3
+*.db
+.DS_Store
+Thumbs.db

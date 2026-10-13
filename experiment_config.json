@@ -1,0 +1,6 @@
+{
+  "openai_judge": {
+    "model": "gpt-5.4-mini",
+    "reasoning_effort": "medium"
+  }
+}

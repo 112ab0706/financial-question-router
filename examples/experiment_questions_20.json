@@ -1,0 +1,22 @@
+[
+  {"question_id": "q001", "question": "截至2014年9月27日,公司兩大客戶合計佔應收貿易帳款總額的百分比是多少?", "gold_answerable": null},
+  {"question_id": "q002", "question": "2010年,公允價值合計中有哪些項目超過總額的10%?", "gold_answerable": null},
+  {"question_id": "q003", "question": "在營收金額最大的部門中,稀釋後每股盈餘(虧損)的總和是多少?", "gold_answerable": null},
+  {"question_id": "q004", "question": "在美國累計給付義務金額最大的年度,美國累計給付義務的總和是多少?(單位:百萬)", "gold_answerable": null},
+  {"question_id": "q005", "question": "在營業收入為正數的年度中,截至12月31日止十二個月的合併服務成本總和是多少?(單位:百萬)", "gold_answerable": null},
+  {"question_id": "q006", "question": "2007年至2008年間,未平倉衍生性商品淨公允價值的百分比變動是多少?(單位:千)", "gold_answerable": null},
+  {"question_id": "q007", "question": "在非美國地區的確定給付退休金計畫中,計入薪資費用的淨定期給付成本在哪一年最高?", "gold_answerable": null},
+  {"question_id": "q008", "question": "在銷售額最多的部門中,總收入及其他收入的成長率是多少?(單位:%)", "gold_answerable": null},
+  {"question_id": "q009", "question": "2011年支出的最大值是多少?(單位:百萬)", "gold_answerable": null},
+  {"question_id": "q010", "question": "授予股數在何時最多?", "gold_answerable": null},
+  {"question_id": "q011", "question": "截至12月31日,自營交易(Principal transactions)的短期借款在哪一年最低?", "gold_answerable": null},
+  {"question_id": "q012", "question": "2012年美國、北美及南美其他地區、歐洲和日本的總金額是多少?", "gold_answerable": null},
+  {"question_id": "q013", "question": "在毛利最低的年度,淨銷售額的成長率是多少?", "gold_answerable": null},
+  {"question_id": "q014", "question": "如果權益證券12月31日的公允價值依2009年的成長率持續增長,2010年將會是多少?(單位:百萬)", "gold_answerable": null},
+  {"question_id": "q015", "question": "2017年權益證券佔總額的比率是多少?", "gold_answerable": null},
+  {"question_id": "q016", "question": "在營業利益最低的年度,所得稅費用的成長率是多少?(單位:%)", "gold_answerable": null},
+  {"question_id": "q017", "question": "2013年至2014年間,營業活動提供的現金變動百分比是多少?", "gold_answerable": null},
+  {"question_id": "q018", "question": "營業收入總額在何時最高?", "gold_answerable": null},
+  {"question_id": "q019", "question": "2014年截至12月31日止年度總收入中歐洲部分,與2015年銷貨成本的總和是多少?(單位:百萬)", "gold_answerable": null},
+  {"question_id": "q020", "question": "如果2014年報告總收入依相同成長率成長,2015年將達到多少?(單位:千美元)", "gold_answerable": null}
+]

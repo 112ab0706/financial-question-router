@@ -1,0 +1,22 @@
+[
+  {"question_id": "q001", "question": "as of september 27 , 2014 , what percentage of total trade receivables did the company's two largest customers account for ?", "gold_answerable": false},
+  {"question_id": "q002", "question": "Which elements for Fair Value of Total exceeds 10% of total in 2010?", "gold_answerable": true},
+  {"question_id": "q003", "question": "In the section with largest amount of Revenues, what's the sum of Diluted earnings (loss) per share:?", "gold_answerable": true},
+  {"question_id": "q004", "question": "In the year with largest amount of U.S. Accumulated Benefit Obligation, what's the sum of U.S. Accumulated Benefit Obligation? (in millions)", "gold_answerable": false},
+  {"question_id": "q005", "question": "What's the sum of the Consolidated cost of services for Twelve Months Ended December 31, in the years where Operating revenue is positive? (in million)", "gold_answerable": true},
+  {"question_id": "q006", "question": "What was the percentage change in net fair value of derivatives outstanding at between 2007 and 2008 in thousands?", "gold_answerable": false},
+  {"question_id": "q007", "question": "In what year is Net periodic benefit costs reported in Compensation expense under Defined benefit pension plans for Non-U.S. the most?", "gold_answerable": false},
+  {"question_id": "q008", "question": "In the section with the most Sales, what is the growth rate of Total revenues and other income? (in %)", "gold_answerable": false},
+  {"question_id": "q009", "question": "What's the greatest value of expenses in 2011? (in millions)", "gold_answerable": true},
+  {"question_id": "q010", "question": "When is Granted for number of shares the largest?", "gold_answerable": false},
+  {"question_id": "q011", "question": "As of December 31,what year is the Short-term borrowings for Principal transactions the lowest?", "gold_answerable": true},
+  {"question_id": "q012", "question": "What's the total amount of United States, Rest of North and South America, Europe and Japan in 2012?", "gold_answerable": false},
+  {"question_id": "q013", "question": "What is the growing rate of Net sales in the year with the least Gross margin?", "gold_answerable": true},
+  {"question_id": "q014", "question": "What will the Fair Value on December 31 for Equity Securities be like in 2010 if it develops with the same increasing rate as in 2009 ? (in million)", "gold_answerable": true},
+  {"question_id": "q015", "question": "What is the ratio of Equity securities to the total in 2017?", "gold_answerable": true},
+  {"question_id": "q016", "question": "In the year with lowest amount of Operating income, what's the increasing rate of Income tax expense? (in %)", "gold_answerable": true},
+  {"question_id": "q017", "question": "what was the percentage change in cash provided by operating activities from 2013 to 2014?", "gold_answerable": false},
+  {"question_id": "q018", "question": "when is the highest total amount of operating revenue?", "gold_answerable": true},
+  {"question_id": "q019", "question": "What is the sum of Europe for Year Ended December 31, Total Revenues in 2014 and Cost of products sold in 2015? (in Million)", "gold_answerable": false},
+  {"question_id": "q020", "question": "If Total revenue As Reported develops with the same growth rate in 2014, what will it reach in 2015? (in dollars in thousands)", "gold_answerable": true}
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "question_id": "q001",
+    "question": "甲公司2025年的營業收入是多少？",
+    "gold_needs_full_report": null
+  },
+  {
+    "question_id": "q002",
+    "question": "公司兩大客戶占應收帳款的百分比是多少？",
+    "gold_needs_full_report": null
+  }
+]
